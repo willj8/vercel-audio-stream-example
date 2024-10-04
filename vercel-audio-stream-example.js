@@ -50,10 +50,34 @@ async function streamAudioToCloudinary(text, voice) { // default ElevenLabs voic
       // Pipe the audio stream directly to the Cloudinary upload stream
       audioStream.pipe(uploadStream);
 
-      // Error handling for the streams
-      uploadStream.on('error', (err) => reject(err));
-      audioStream.on('error', (err) => reject(err));
+      // Add error handling for the upload stream
+      uploadStream.on('error', (err) => {
+        console.error('Error during Cloudinary upload stream:', err);
+        reject(err);
+      });
+
+      // Add error handling for the audio stream
+      audioStream.on('error', (err) => {
+        console.error('Error during audio generation or streaming:', err);
+        reject(err);
+      });
+
+      // Check the stream ends properly
+      audioStream.on('end', () => {
+        console.log('Audio stream ended');
+      });
+
+      // Add a timeout to handle long-running streams
+      const timeout = setTimeout(() => {
+        reject(new Error('Audio generation timeout'));
+      }, 10000); // Timeout after 10 seconds (adjust as necessary)
+
+      // Clear the timeout when the stream ends
+      audioStream.on('end', () => {
+        clearTimeout(timeout);
+      });
     });
+    
   } catch (error) {
     console.error('Failed to generate and upload audio:', error);
     throw error;
